@@ -1,0 +1,21 @@
+[project]
+name = "steganos-node"
+description = "Hide videos (with audio), files and messages inside a normal-looking PNG. Extract with any unzip tool or the bundled decoder node; optional AES-256 password."
+version = "2.0.0"
+license = {file = "LICENSE"}
+dependencies = ["imageio-ffmpeg", "pyzipper"]
+classifiers = [
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/wzken/ComfyUI-Steganos-Node"
+#  Used by Comfy Registry https://registry.comfy.org
+Documentation = "https://github.com/wzken/ComfyUI-Steganos-Node#readme"
+"Bug Tracker" = "https://github.com/wzken/ComfyUI-Steganos-Node/issues"
+
+[tool.comfy]
+PublisherId = "wzken"
+DisplayName = "ComfyUI-Steganos-Node"
+Icon = ""
+includes = []
