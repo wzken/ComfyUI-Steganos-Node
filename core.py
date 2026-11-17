@@ -64,7 +64,8 @@ def encode_video(frames, fps, fmt, quality, out_path, audio_path=None):
 
 def decode_video(path, width=None, height=None):
     """Returns (uint8 frames [N, H, W, 3], fps), cropped to width x height when given."""
-    reader = imageio_ffmpeg.read_frames(path, pix_fmt="rgb24")
+    # passthrough keeps one output frame per stored frame; GIF delays would otherwise trigger duplicates.
+    reader = imageio_ffmpeg.read_frames(path, pix_fmt="rgb24", output_params=["-fps_mode", "passthrough"])
     meta = next(reader)
     w, h = meta["size"]
     frames = np.stack([np.frombuffer(f, dtype=np.uint8).reshape(h, w, 3) for f in reader])
