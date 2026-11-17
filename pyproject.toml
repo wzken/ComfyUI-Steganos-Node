@@ -15,7 +15,7 @@ Documentation = "https://github.com/wzken/ComfyUI-Steganos-Node#readme"
 "Bug Tracker" = "https://github.com/wzken/ComfyUI-Steganos-Node/issues"
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "wzken"
 DisplayName = "ComfyUI-Steganos-Node"
 Icon = ""
 includes = []
