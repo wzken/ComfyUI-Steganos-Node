@@ -17,12 +17,20 @@ DEFAULT_COVER = os.path.join(os.path.dirname(__file__), "test.png")
 
 def _check_allowed(path):
     """Returns the real path if it lies inside the ComfyUI input, output or temp folder."""
+    if not _preview_of(path):
+        raise ValueError("Steganos: paths must be inside the ComfyUI input, output or temp folder.")
+    return os.path.realpath(path)
+
+
+def _preview_of(path):
+    """UI preview entry for a file inside the input, output or temp folder."""
     path = os.path.realpath(path)
-    for d in (folder_paths.get_input_directory(), folder_paths.get_output_directory(), folder_paths.get_temp_directory()):
+    for kind, d in (("input", folder_paths.get_input_directory()), ("output", folder_paths.get_output_directory()), ("temp", folder_paths.get_temp_directory())):
         d = os.path.realpath(d)
         if os.path.commonpath([d, path]) == d:
-            return path
-    raise ValueError("Steganos: paths must be inside the ComfyUI input, output or temp folder.")
+            subfolder, filename = os.path.split(os.path.relpath(path, d))
+            return {"images": [{"filename": filename, "subfolder": subfolder, "type": kind}]}
+    return {}
 
 
 def _to_uint8(images):
@@ -251,7 +259,7 @@ class SteganosDecoder:
         if os.path.exists(message_path):
             with open(message_path, encoding="utf-8") as f:
                 message = f.read()
-        return (_to_tensor(frames), audio, fps, message, extract_dir)
+        return {"ui": _preview_of(path), "result": (_to_tensor(frames), audio, fps, message, extract_dir)}
 
     @classmethod
     def IS_CHANGED(cls, image, password, file_path=""):
