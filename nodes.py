@@ -120,6 +120,37 @@ class SteganosNode:
         return {"ui": preview, "result": (cover_tensor, path)}
 
 
+def _pack_entries(files):
+    """Resolves the packer's file list into unique (arcname, path) pairs."""
+    used = {core.MANIFEST_NAME, "message.txt", "prompt.json", "workflow.json"}
+    entries = []
+
+    def add(arcname, path):
+        stem, ext = os.path.splitext(arcname)
+        i = 2
+        while arcname in used:
+            arcname = f"{stem} ({i}){ext}"
+            i += 1
+        used.add(arcname)
+        entries.append((arcname, _check_allowed(path)))
+
+    for line in files.splitlines():
+        if not line.strip():
+            continue
+        path = _check_allowed(folder_paths.get_annotated_filepath(line.strip()))
+        if os.path.isdir(path):
+            root = os.path.dirname(path)
+            for dirpath, _, filenames in sorted(os.walk(path)):
+                for name in sorted(filenames):
+                    file_path = os.path.join(dirpath, name)
+                    add(os.path.relpath(file_path, root).replace(os.sep, "/"), file_path)
+        elif os.path.isfile(path):
+            add(os.path.basename(path), path)
+        else:
+            raise FileNotFoundError(f"Steganos: file not found: {line.strip()}")
+    return entries
+
+
 class SteganosFilePacker:
     @classmethod
     def INPUT_TYPES(cls):
@@ -145,21 +176,7 @@ class SteganosFilePacker:
     DESCRIPTION = "Hides arbitrary files from the ComfyUI input/output folders, plus an optional message, inside a PNG cover."
 
     def pack(self, cover, filename_prefix, files, password="", message="", embed_workflow=False, prompt=None, extra_pnginfo=None):
-        entries = []
-        for line in files.splitlines():
-            if not line.strip():
-                continue
-            path = _check_allowed(folder_paths.get_annotated_filepath(line.strip()))
-            if os.path.isdir(path):
-                root = os.path.dirname(path.rstrip(os.sep))
-                for dirpath, _, filenames in os.walk(path):
-                    for name in sorted(filenames):
-                        file_path = os.path.join(dirpath, name)
-                        entries.append((os.path.relpath(file_path, root).replace(os.sep, "/"), file_path))
-            elif os.path.isfile(path):
-                entries.append((os.path.basename(path), path))
-            else:
-                raise FileNotFoundError(f"Steganos: file not found: {line.strip()}")
+        entries = _pack_entries(files)
         manifest = {"version": 2, "video": None, "files": [name for name, _ in entries]}
         entries += _common_payload(message, embed_workflow, prompt, extra_pnginfo)
         if not entries:
