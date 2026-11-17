@@ -49,6 +49,11 @@ class CoreTest(unittest.TestCase):
                     # 2 s of audio is trimmed to the 0.75 s video.
                     self.assertLess(abs(wav.shape[1] - 6 / 8 * 16000), 1000)
 
+    def test_slow_gif_keeps_frame_count(self):
+        video = self.path("slow.gif")
+        core.encode_video(frames(), 1.0, "gif", 0, video)
+        self.assertEqual(core.decode_video(video)[0].shape[0], 6)
+
     def test_polyglot_is_valid_png_and_zip(self):
         out = self.path("out.png")
         core.write_polyglot(out, COVER, [("message.txt", "你好".encode())], {"version": 2, "video": None})
