@@ -14,6 +14,16 @@ from . import core
 DEFAULT_COVER = os.path.join(os.path.dirname(__file__), "test.png")
 
 
+def _check_allowed(path):
+    """Returns the real path if it lies inside the ComfyUI input, output or temp folder."""
+    path = os.path.realpath(path)
+    for d in (folder_paths.get_input_directory(), folder_paths.get_output_directory(), folder_paths.get_temp_directory()):
+        d = os.path.realpath(d)
+        if os.path.commonpath([d, path]) == d:
+            return path
+    raise ValueError("Steganos: paths must be inside the ComfyUI input, output or temp folder.")
+
+
 def _to_uint8(images):
     return (images.cpu().numpy() * 255).round().clip(0, 255).astype(np.uint8)
 
@@ -139,8 +149,7 @@ class SteganosFilePacker:
         for line in files.splitlines():
             if not line.strip():
                 continue
-            # get_annotated_filepath keeps paths inside the input/output/temp folders.
-            path = folder_paths.get_annotated_filepath(line.strip())
+            path = _check_allowed(folder_paths.get_annotated_filepath(line.strip()))
             if os.path.isdir(path):
                 root = os.path.dirname(path.rstrip(os.sep))
                 for dirpath, _, filenames in os.walk(path):
@@ -162,11 +171,7 @@ class SteganosFilePacker:
 def _resolve_input(image, file_path):
     if not file_path:
         return folder_paths.get_annotated_filepath(image)
-    path = os.path.abspath(file_path)
-    allowed = (folder_paths.get_input_directory(), folder_paths.get_output_directory(), folder_paths.get_temp_directory())
-    if not any(os.path.commonpath([os.path.abspath(d), path]) == os.path.abspath(d) for d in allowed):
-        raise ValueError("Steganos: file_path must be inside the ComfyUI input, output or temp folder.")
-    return path
+    return _check_allowed(file_path)
 
 
 class SteganosDecoder:
