@@ -184,6 +184,11 @@ class SteganosFilePacker:
         path, preview, _ = _save_polyglot(filename_prefix, cover, entries, manifest, password)
         return {"ui": preview, "result": (path,)}
 
+    @classmethod
+    def IS_CHANGED(cls, files, **kwargs):
+        stats = [(name, os.path.getsize(path), os.path.getmtime(path)) for name, path in _pack_entries(files)]
+        return hashlib.sha256(json.dumps(stats).encode("utf-8")).hexdigest()
+
 
 def _resolve_input(image, file_path):
     if not file_path:
