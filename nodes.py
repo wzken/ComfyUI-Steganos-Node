@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import shutil
 import tempfile
 
 import numpy as np
@@ -221,18 +222,26 @@ class SteganosDecoder:
     def decode(self, image, password, file_path=""):
         path = _resolve_input(image, file_path)
         extract_dir = os.path.join(folder_paths.get_output_directory(), "steganos_extracted", os.path.splitext(os.path.basename(path))[0])
+        shutil.rmtree(extract_dir, ignore_errors=True)
         manifest = core.extract_payload(path, extract_dir, password)
+
+        def payload_path(name):
+            # The manifest comes from an untrusted file; never follow it outside the extraction folder.
+            full = os.path.realpath(os.path.join(extract_dir, name))
+            if os.path.commonpath([os.path.realpath(extract_dir), full]) != os.path.realpath(extract_dir):
+                raise ValueError(f"Steganos: invalid path in manifest: {name!r}")
+            return full
 
         fps = 0.0
         if manifest.get("video"):
-            frames, fps = core.decode_video(os.path.join(extract_dir, manifest["video"]), manifest.get("width"), manifest.get("height"))
+            frames, fps = core.decode_video(payload_path(manifest["video"]), manifest.get("width"), manifest.get("height"))
             fps = float(manifest.get("fps", fps))
         else:
             frames = np.array(Image.open(path).convert("RGB"))[None]
 
         audio_info = manifest.get("audio")
         if audio_info:
-            waveform = core.decode_audio(os.path.join(extract_dir, audio_info["file"]), audio_info["sample_rate"], audio_info["channels"])
+            waveform = core.decode_audio(payload_path(audio_info["file"]), audio_info["sample_rate"], audio_info["channels"])
             audio = {"waveform": torch.from_numpy(waveform.copy())[None], "sample_rate": audio_info["sample_rate"]}
         else:
             audio = {"waveform": torch.zeros((1, 1, 1)), "sample_rate": 44100}
